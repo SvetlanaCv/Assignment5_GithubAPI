@@ -33,7 +33,29 @@ gitDF[gitDF$full_name == "dipakkr/datasharing", "created_at"]
 #how to extract data by index and place into out
 out<-list(json1[[30]]$login, json1[[30]]$contributions)
 
-file.create("data.txt")
+array1 = rep(0,30)
+array2 = rep(0,30)
 
 #add new data to file
-for(i in c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30)){out <- list(json1[[i]]$login, json1[[i]]$contributions); lapply(out, write, "data.txt", append=TRUE, ncolumns=2)}
+for(i in c(1:30)){
+array1[i] = json1[[i]]$login
+array2[i] = json1[[i]]$contributions
+}
+
+matrix1 = as.matrix(cbind(array1, array2))
+#print(matrix1)
+
+array1 = rep(0,30)
+array2 = rep(0,30)
+
+for(i in c(1:30)){
+temp <- GET(paste(list(json1[[i]]$url)), gtoken)
+stop_for_status(temp)
+json2 = content(temp)
+gitDF2 = jsonlite::fromJSON(jsonlite::toJSON(json2))
+array1[i] = (gitDF2$public_repos)
+array2[i] = (gitDF2$login)
+}
+
+matrix2 = as.matrix(cbind(array1, array2))
+#print(matrix2)
