@@ -6,6 +6,7 @@ library(httpuv)
 library(httr)
 #install.pakages("sunburstR")
 library(sunburstR)
+library(shiny)
 
 # Can be github, linkedin etc depending on application
 oauth_endpoints("github")
@@ -31,31 +32,36 @@ gitDF = jsonlite::fromJSON(jsonlite::toJSON(json1))
 gitDF[gitDF$full_name == "dipakkr/datasharing", "created_at"] 
 
 #how to extract data by index and place into out
-out<-list(json1[[30]]$login, json1[[30]]$contributions)
+#out<-list(json1[[30]]$login, json1[[30]]$contributions)
 
-array1 = rep(0,30)
-array2 = rep(0,30)
+username = rep(0,30)
+noContributions = rep(0,30)
 
 #add new data to file
 for(i in c(1:30)){
-array1[i] = json1[[i]]$login
-array2[i] = json1[[i]]$contributions
+username[i] = json1[[i]]$login
+noContributions[i] = json1[[i]]$contributions
 }
 
-matrix1 = as.matrix(cbind(array1, array2))
-#print(matrix1)
+contributions <- data.frame(username = username, noContributions = noContributions)
+#transform(contributions, username = as.numeric(username))
+print(contributions)
 
-array1 = rep(0,30)
-array2 = rep(0,30)
+noRepos = rep(0,30)
+username = rep(0,30)
 
 for(i in c(1:30)){
 temp <- GET(paste(list(json1[[i]]$url)), gtoken)
 stop_for_status(temp)
 json2 = content(temp)
 gitDF2 = jsonlite::fromJSON(jsonlite::toJSON(json2))
-array1[i] = (gitDF2$public_repos)
-array2[i] = (gitDF2$login)
+noRepos[i] = (gitDF2$public_repos)
+username[i] = (gitDF2$login)
 }
 
-matrix2 = as.matrix(cbind(array1, array2))
-#print(matrix2)
+repos <- data.frame(username = username, noRepos = noRepos)
+print(repos)
+plot(contributions)
+plot(repos)
+#str(contributions)
+#sapply(contributions, mode)
