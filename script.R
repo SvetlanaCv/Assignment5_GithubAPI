@@ -4,7 +4,7 @@ library(jsonlite)
 library(httpuv)
 #install.packages("httr")
 library(httr)
-#install.pakages("sunburstR")
+
 library(sunburstR)
 library(shiny)
 
@@ -65,3 +65,14 @@ plot(contributions)
 plot(repos)
 #str(contributions)
 #sapply(contributions, mode)
+
+server <- function(input,output,session){
+  output$plot <- renderPlot({plot(contributions)})
+}
+
+ui <- bootstrapPage(
+  numericInput('n', 'Placeholder', 200),
+  plotOutput('plot')
+)
+
+shinyApp(ui = ui, server = server)
