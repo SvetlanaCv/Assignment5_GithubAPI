@@ -7,6 +7,7 @@ library(httr)
 
 library(sunburstR)
 library(shiny)
+library(lattice)
 
 # Can be github, linkedin etc depending on application
 oauth_endpoints("github")
@@ -45,7 +46,7 @@ noContributions[i] = json1[[i]]$contributions
 
 contributions <- data.frame(username = username, noContributions = noContributions)
 #transform(contributions, username = as.numeric(username))
-print(contributions)
+#print(contributions)
 
 noRepos = rep(0,30)
 username = rep(0,30)
@@ -60,19 +61,30 @@ username[i] = (gitDF2$login)
 }
 
 repos <- data.frame(username = username, noRepos = noRepos)
-print(repos)
-plot(contributions)
-plot(repos)
+#print(repos)
+#plot(contributions)
+#plot(repos)
 #str(contributions)
 #sapply(contributions, mode)
+#hist(contributions$noContributions)
+contributions <- contributions[order(contributions$username),]
+repos <- repos[order(repos$username),]
+#lines(contributions , type="b" , bty="l" , xlab="Username" , ylab="Number of Contributions" , col="blue" , lwd=3 , pch=17 )
+#lines(repos , col="green" , lwd=3 , pch=19 , type="b" )
 
 server <- function(input,output,session){
   output$plot <- renderPlot({plot(contributions)})
-}
+  #output$plot2 <- renderPlot({plot(repos)})
+  }
 
-ui <- bootstrapPage(
-  numericInput('n', 'Placeholder', 200),
-  plotOutput('plot')
-)
+ui <- fluidPage(titlePanel("Github Data Extraction Results"),
+                sidebarPanel("Options",
+                             
+                             fluidRow(
+                               sliderInput("slider", "Select Minimum", min=0, max=200, value=50))),
+                mainPanel("Graph"),
+                plotOutput(("plot"))
+                #plotOutput(("plot2"))
+                )
 
 shinyApp(ui = ui, server = server)
