@@ -8,6 +8,7 @@ library(httr)
 library(sunburstR)
 library(shiny)
 library(lattice)
+library(ggplot2)
 
 # Can be github, linkedin etc depending on application
 oauth_endpoints("github")
@@ -29,62 +30,64 @@ json1 = content(req)
 # Convert to a data.frame
 gitDF = jsonlite::fromJSON(jsonlite::toJSON(json1))
 
-# Subset data.frame
-gitDF[gitDF$full_name == "dipakkr/datasharing", "created_at"] 
-
-#how to extract data by index and place into out
-#out<-list(json1[[30]]$login, json1[[30]]$contributions)
-
-username = rep(0,30)
-noContributions = rep(0,30)
-
+username = rep(0,nrow(gitDF))
+noContributions = rep(0, nrow(gitDF))
 #add new data to file
-for(i in c(1:30)){
-username[i] = json1[[i]]$login
-noContributions[i] = json1[[i]]$contributions
+for(i in c(1:nrow(gitDF))){
+username[i] = gitDF$login[i]
+noContributions[i] = gitDF$contributions[i]
 }
 
-contributions <- data.frame(username = username, noContributions = noContributions)
-#transform(contributions, username = as.numeric(username))
-#print(contributions)
+#print(username)
+#print(noContributions)
 
-noRepos = rep(0,30)
-username = rep(0,30)
+noRepos = rep(0,nrow(gitDF))
 
-for(i in c(1:30)){
-temp <- GET(paste(list(json1[[i]]$url)), gtoken)
+for(i in c(1:nrow(gitDF))){
+temp <- GET(paste(list(gitDF$url[i])), gtoken)
 stop_for_status(temp)
 json2 = content(temp)
 gitDF2 = jsonlite::fromJSON(jsonlite::toJSON(json2))
 noRepos[i] = (gitDF2$public_repos)
-username[i] = (gitDF2$login)
 }
 
-repos <- data.frame(username = username, noRepos = noRepos)
-#print(repos)
-#plot(contributions)
-#plot(repos)
-#str(contributions)
-#sapply(contributions, mode)
-#hist(contributions$noContributions)
-contributions <- contributions[order(contributions$username),]
-repos <- repos[order(repos$username),]
-#lines(contributions , type="b" , bty="l" , xlab="Username" , ylab="Number of Contributions" , col="blue" , lwd=3 , pch=17 )
-#lines(repos , col="green" , lwd=3 , pch=19 , type="b" )
+data <- data.frame(username = username, noContributions=noContributions)
+#data <- data[order(data$username),]
+print(data)
+data <- data[order(data$username, decreasing=FALSE),]
+#print(data)
+#data<-data[order(data$username, decreasing=TRUE),]
+#print(data)
+plot(data$noContributions, data$username)
+#lines(data$username,data$noRepos , col="green" , lwd=3 , pch=19 , type="l" )
 
 server <- function(input,output,session){
-  output$plot <- renderPlot({plot(contributions)})
-  #output$plot2 <- renderPlot({plot(repos)})
+  output$plot <- renderPlot({
+    
+    #if(input$select == "alph"){
+    #  data <- data[order(data$username, decreasing=FALSE),]
+    #  plot(data$noContributions~data$username , type="b" , bty="l" , xlab="Username" , ylab="Number of Contributions" , col="blue" , lwd=3 , pch=17 )
+    #  lines(data$noRepos~data$username , col="green" , lwd=3 , pch=19 , type="b" )
+    #  }
+    #if(input$select == "revalph"){
+    #  data <- data[order(data$username, decreasing=TRUE),]
+    #  data<-data[dim(data)[1]:1,]
+    #  plot(data$noContributions~data$username , type="b" , bty="l" , xlab="Username" , ylab="Number of Contributions" , col="blue" , lwd=3 , pch=17 )
+    #  lines(data$noRepos~data$username , col="green" , lwd=3 , pch=19 , type="b" )
+    #}
+    
+  })
   }
 
 ui <- fluidPage(titlePanel("Github Data Extraction Results"),
                 sidebarPanel("Options",
-                             
-                             fluidRow(
-                               sliderInput("slider", "Select Minimum", min=0, max=200, value=50))),
+                    selectInput("select", "Order By", c("Alphabetic" = "alph",
+                                                         "Reverse Alphabetic" = "revalph",
+                                                         "Contributions" = "contr",
+                                                         "Repositories" = "repos"),
+                                selected = "alph")
+                ),
                 mainPanel("Graph"),
-                plotOutput(("plot"))
-                #plotOutput(("plot2"))
-                )
+                plotOutput(("plot")))
 
 shinyApp(ui = ui, server = server)
