@@ -5,7 +5,6 @@ library(httpuv)
 #install.packages("httr")
 library(httr)
 
-library(sunburstR)
 library(shiny)
 library(lattice)
 library(ggplot2)
@@ -34,60 +33,73 @@ username = rep(0,nrow(gitDF))
 noContributions = rep(0, nrow(gitDF))
 #add new data to file
 for(i in c(1:nrow(gitDF))){
-username[i] = gitDF$login[i]
-noContributions[i] = gitDF$contributions[i]
+username[i] = paste(gitDF$login[i])
+noContributions[i] = as.numeric(gitDF$contributions[i])
 }
-
-#print(username)
-#print(noContributions)
-
 noRepos = rep(0,nrow(gitDF))
 
 for(i in c(1:nrow(gitDF))){
-temp <- GET(paste(list(gitDF$url[i])), gtoken)
+temp <- GET(paste(gitDF$url[i]), gtoken)
 stop_for_status(temp)
 json2 = content(temp)
 gitDF2 = jsonlite::fromJSON(jsonlite::toJSON(json2))
-noRepos[i] = (gitDF2$public_repos)
+noRepos[i] = as.numeric(gitDF2$public_repos)
 }
 
 data <- data.frame(username = username, noContributions=noContributions)
-#data <- data[order(data$username),]
-print(data)
-data <- data[order(data$username, decreasing=FALSE),]
-#print(data)
-#data<-data[order(data$username, decreasing=TRUE),]
-#print(data)
-plot(data$noContributions, data$username)
-#lines(data$username,data$noRepos , col="green" , lwd=3 , pch=19 , type="l" )
+data2 <- data.frame(username=username, noRepos=noRepos)
+
+#data$username <- factor(data$noContributions, levels = data$noContributions[order(data$username, decreasing=TRUE)])
+#ggplot(data, aes(x = data$username, y = data$noContributions)) +labs(x="x", y="y") + theme_bw() + geom_bar(stat = "identity") +coord_flip()
 
 server <- function(input,output,session){
   output$plot <- renderPlot({
-    
-    #if(input$select == "alph"){
-    #  data <- data[order(data$username, decreasing=FALSE),]
-    #  plot(data$noContributions~data$username , type="b" , bty="l" , xlab="Username" , ylab="Number of Contributions" , col="blue" , lwd=3 , pch=17 )
-    #  lines(data$noRepos~data$username , col="green" , lwd=3 , pch=19 , type="b" )
-    #  }
-    #if(input$select == "revalph"){
-    #  data <- data[order(data$username, decreasing=TRUE),]
-    #  data<-data[dim(data)[1]:1,]
-    #  plot(data$noContributions~data$username , type="b" , bty="l" , xlab="Username" , ylab="Number of Contributions" , col="blue" , lwd=3 , pch=17 )
-    #  lines(data$noRepos~data$username , col="green" , lwd=3 , pch=19 , type="b" )
-    #}
-    
+    if(input$selectContr == "contrS"){
+      data$username <- factor(data$username, levels = unique(data$username[order(data$noContributions, decreasing=TRUE)]))
+    }
+    else if(input$selectContr == "contrL"){
+      data$username <- factor(data$username, levels = unique(data$username[order(data$noContributions, decreasing=FALSE)]))
+      }
+    else if(input$selectContr == "alphC"){
+      data$username <- factor(data$username, levels = unique(data$username[order(data$username, decreasing=TRUE)]))
+    }
+    else if(input$selectContr == "alphCRev"){
+      data$username <- factor(data$username, levels = unique(data$username[order(data$username, decreasing=FALSE)]))
+    }
+    ggplot(data, aes(x = data$username, y = data$noContributions)) + theme_bw() + geom_bar(stat = "identity") +coord_flip()
+  })
+  output$plot2 <- renderPlot({
+    if(input$selectRepo == "repS"){
+      data2$username <- factor(data2$username, levels = data2$username[order(data2$noRepos, decreasing=TRUE)])
+    }
+    else if(input$selectRepo == "repL"){
+      data2$username <- factor(data2$username, levels = data2$username[order(data2$noRepos, decreasing=FALSE)])
+    }
+    else if(input$selectRepo == "alphR"){
+      data2$username <- factor(data2$username, levels = data2$username[order(data2$username, decreasing=TRUE)])
+    }
+    else if(input$selectRepo == "alphRRev"){
+      data2$username <- factor(data2$username, levels = data2$username[order(data2$username, decreasing=FALSE)])
+    }
+    ggplot(data2, aes(x = data2$username, y = data2$noRepos)) + theme_bw() + geom_bar(stat = "identity") +coord_flip()
   })
   }
 
 ui <- fluidPage(titlePanel("Github Data Extraction Results"),
-                sidebarPanel("Options",
-                    selectInput("select", "Order By", c("Alphabetic" = "alph",
-                                                         "Reverse Alphabetic" = "revalph",
-                                                         "Contributions" = "contr",
-                                                         "Repositories" = "repos"),
-                                selected = "alph")
+                fluidRow(
+                column(12, selectInput("selectContr", "Order By", c("Contributions Decreasing" = "contrL",
+                                                                    "Contributions Increasing" = "contrS",
+                                                                    "Alphabetic" = "alphC",
+                                                                    "Alphabetic Reverse" = "alphCRev"), selected = "contrL")),
+                column(12, selectInput("selectRepo", "Order By", c("Repos Decreasing" = "repL",
+                                                                   "Repos Increasing" = "repS",
+                                                                   "Alphabetic" = "alphR",
+                                                                   "Alphabetic Reverse" = "alphRRev"), selected = "repL"))
                 ),
-                mainPanel("Graph"),
-                plotOutput(("plot")))
+                fluidRow(
+                  plotOutput(("plot"))),
+                fluidRow(
+                  plotOutput(("plot2")))
+                )
 
 shinyApp(ui = ui, server = server)
