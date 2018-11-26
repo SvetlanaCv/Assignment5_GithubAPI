@@ -4,12 +4,11 @@ library(jsonlite)
 library(httpuv)
 #install.packages("httr")
 library(httr)
-
+#install.packages("shiny")
 library(shiny)
-library(lattice)
+#install.packages("ggplot2")
 library(ggplot2)
 
-# Can be github, linkedin etc depending on application
 oauth_endpoints("github")
 myapp <- oauth_app(appname = "Assignment_5_Svetlana_Cvetic", key = "dc80d9f1d7a365bcad95", secret = "b333c9422fe2e927ef00e78ac18cae69af24d911")
 
@@ -31,13 +30,12 @@ gitDF = jsonlite::fromJSON(jsonlite::toJSON(json1))
 
 username = rep(0,nrow(gitDF))
 noContributions = rep(0, nrow(gitDF))
-#add new data to file
 for(i in c(1:nrow(gitDF))){
 username[i] = paste(gitDF$login[i])
 noContributions[i] = as.numeric(gitDF$contributions[i])
 }
-noRepos = rep(0,nrow(gitDF))
 
+noRepos = rep(0,nrow(gitDF))
 for(i in c(1:nrow(gitDF))){
 temp <- GET(paste(gitDF$url[i]), gtoken)
 stop_for_status(temp)
@@ -66,7 +64,7 @@ server <- function(input,output,session){
     else if(input$selectContr == "alphCRev"){
       data$username <- factor(data$username, levels = unique(data$username[order(data$username, decreasing=FALSE)]))
     }
-    ggplot(data, aes(x = data$username, y = data$noContributions)) + theme_bw() + geom_bar(stat = "identity") +coord_flip()
+    ggplot(data, aes(x = data$username, y = data$noContributions))+labs(x="Username", y="Number of Contributions") + theme_bw() + geom_bar(stat = "identity") +coord_flip()
   })
   output$plot2 <- renderPlot({
     if(input$selectRepo == "repS"){
@@ -81,17 +79,17 @@ server <- function(input,output,session){
     else if(input$selectRepo == "alphRRev"){
       data2$username <- factor(data2$username, levels = data2$username[order(data2$username, decreasing=FALSE)])
     }
-    ggplot(data2, aes(x = data2$username, y = data2$noRepos)) + theme_bw() + geom_bar(stat = "identity") +coord_flip()
+    ggplot(data2, aes(x = data2$username, y = data2$noRepos))+labs(x="Username", y="Number of Repositories") + theme_bw() + geom_bar(stat = "identity") +coord_flip()
   })
   }
 
 ui <- fluidPage(titlePanel("Github Data Extraction Results"),
                 fluidRow(
-                column(12, selectInput("selectContr", "Order By", c("Contributions Decreasing" = "contrL",
+                column(12, selectInput("selectContr", "Order Contributions By", c("Contributions Decreasing" = "contrL",
                                                                     "Contributions Increasing" = "contrS",
                                                                     "Alphabetic" = "alphC",
                                                                     "Alphabetic Reverse" = "alphCRev"), selected = "contrL")),
-                column(12, selectInput("selectRepo", "Order By", c("Repos Decreasing" = "repL",
+                column(12, selectInput("selectRepo", "Order Repos By", c("Repos Decreasing" = "repL",
                                                                    "Repos Increasing" = "repS",
                                                                    "Alphabetic" = "alphR",
                                                                    "Alphabetic Reverse" = "alphRRev"), selected = "repL"))
